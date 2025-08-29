@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>SUDOKU</title>
+    <link rel="stylesheet" href="css/reset.css" type="text/css">
+    <link rel="stylesheet" href="css/main.css" type="text/css">
+    <link rel="stylesheet" href="css/orientation_utils.css" type="text/css">
+    <link rel='shortcut icon' type='image/x-icon' href='./favicon.ico' />
+
+
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <meta name="viewport"
+        content="width=device-width, user-scalable=no, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0" />
+    <meta name="msapplication-tap-highlight" content="no" />
+    
+    <!-- Capacitor Meta Tags -->
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="msapplication-tap-highlight" content="no" />
+    <meta name="format-detection" content="telephone=no" />
+    <!-- Strict CSP to block all external connections -->
+    <meta http-equiv="Content-Security-Policy" content="
+        default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:;
+        script-src 'self' 'unsafe-inline' 'unsafe-eval';
+        connect-src 'self';
+        img-src 'self' data: blob:;
+        style-src 'self' 'unsafe-inline';
+        font-src 'self' data:;
+        frame-src 'none';
+        form-action 'none';
+        base-uri 'self';
+    ">
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+    <!-- Block all Poki-related network requests before anything else loads -->
+    <script>
+    // Register Service Worker
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+            navigator.serviceWorker.register('js/000-service-worker.js')
+                .then(registration => {
+                    console.log('ServiceWorker registration successful');
+                })
+                .catch(err => {
+                    console.log('ServiceWorker registration failed: ', err);
+                });
+        });
+    }
+    
+    // Block all Poki domains immediately
+    const blockedDomains = [
+        'poki.com',
+        'po.ki',
+        'poki.dev',
+        'poki-gcdn.com',
+        'poki-user-content.com',
+        'poki-sdk.com'
+    ];
+    
+    // Block window.open
+    const originalWindowOpen = window.open;
+    window.open = function(url, target, features) {
+        if (url && blockedDomains.some(domain => url.includes(domain))) {
+            console.log('Blocked window.open to:', url);
+            return null;
+        }
+        return originalWindowOpen.call(window, url, target, features);
+    };
+    
+    // Block iframe creation
+    const originalCreateElement = document.createElement;
+    document.createElement = function(tagName, options) {
+        const element = originalCreateElement.call(document, tagName, options);
+        if (tagName.toLowerCase() === 'iframe') {
+            const originalSrcDescriptor = Object.getOwnPropertyDescriptor(HTMLIFrameElement.prototype, 'src');
+            Object.defineProperty(element, 'src', {
+                set: function(value) {
+                    if (value && blockedDomains.some(domain => value.includes(domain))) {
+                        console.log('Blocked iframe src to:', value);
+                        return '';
+                    }
+                    return originalSrcDescriptor.set.call(this, value);
+                },
+                get: function() {
+                    return originalSrcDescriptor.get.call(this);
+                }
+            });
+        }
+        return element;
+    };
+    
+    // Block fetch/XHR requests
+    const originalFetch = window.fetch;
+    window.fetch = function(resource, init) {
+        const url = typeof resource === 'string' ? resource : (resource?.url || '');
+        if (url && blockedDomains.some(domain => url.includes(domain))) {
+            console.log('Blocked fetch to:', url);
+            return Promise.reject(new Error('Blocked by content security policy'));
+        }
+        return originalFetch.call(window, resource, init);
+    };
+    
+    const originalXHROpen = XMLHttpRequest.prototype.open;
+    XMLHttpRequest.prototype.open = function() {
+        const url = arguments[1];
+        if (url && blockedDomains.some(domain => url.includes(domain))) {
+            console.log('Blocked XHR to:', url);
+            this._blocked = true;
+            return;
+        }
+        return originalXHROpen.apply(this, arguments);
+    };
+    
+    const originalXHRSend = XMLHttpRequest.prototype.send;
+    XMLHttpRequest.prototype.send = function() {
+        if (this._blocked) {
+            console.log('Blocked XHR send to blocked domain');
+            return;
+        }
+        return originalXHRSend.apply(this, arguments);
+    };
+    
+    // Block WebSocket connections
+    const originalWebSocket = window.WebSocket;
+    window.WebSocket = function(url, protocols) {
+        if (url && blockedDomains.some(domain => url.includes(domain))) {
+            console.log('Blocked WebSocket to:', url);
+            throw new Error('Blocked by content security policy');
+        }
+        return new originalWebSocket(url, protocols);
+    };
+    </script>
+    
+    <script type="text/javascript" src="js/000-block-requests.js"></script>
+    <script type="text/javascript" src="js/00-block-poki.js"></script>
+    <script type="text/javascript" src="js/jquery-2.0.3.min.js"></script>
+    <script type="text/javascript" src="js/capacitor-config.js"></script>
+    <script type="text/javascript" src="js/createjs.min.js"></script>
+    <script type="text/javascript" src="js/howler.min.js"></script>
+    <script type="text/javascript" src="js/ios_fullscreen.js"></script>
+    <script type="text/javascript" src="js/screenfull.js"></script>
+    <script type="text/javascript" src="js/platform.js"></script>
+    <script type="text/javascript" src="js/ctl_utils.js"></script>
+    <script type="text/javascript" src="js/sprite_lib.js"></script>
+    <script type="text/javascript" src="js/settings.js"></script>
+    <script type="text/javascript" src="js/CLang.js"></script>
+    <script type="text/javascript" src="js/CPreloader.js"></script>
+    <script type="text/javascript" src="js/CMain.js"></script>
+    <script type="text/javascript" src="js/CTextButton.js"></script>
+    <script type="text/javascript" src="js/CToggle.js"></script>
+    <script type="text/javascript" src="js/CDeleteButton.js"></script>
+    <script type="text/javascript" src="js/CGfxButton.js"></script>
+    <script type="text/javascript" src="js/CMenu.js"></script>
+    <script type="text/javascript" src="js/CModeMenu.js"></script>
+    <script type="text/javascript" src="js/CGame.js"></script>
+    <script type="text/javascript" src="js/CInterface.js"></script>
+    <script type="text/javascript" src="js/CHelpPanel.js"></script>
+    <script type="text/javascript" src="js/CPausePanel.js"></script>
+    <script type="text/javascript" src="js/CSudokuLoader.js"></script>
+    <script type="text/javascript" src="js/CEndPanel.js"></script>
+    <script type="text/javascript" src="js/CConfigPanel.js"></script>
+    <script type="text/javascript" src="js/CGrid.js"></script>
+    <script type="text/javascript" src="js/CCell.js"></script>
+    <script type="text/javascript" src="js/CNumButton.js"></script>
+    <script type="text/javascript" src="js/CCreditsPanel.js"></script>
+    <script type="text/javascript" src="js/CAreYouSurePanel.js"></script>
+
+</head>
+
+<body ondragstart="return false;" ondrop="return false;">
+    <div style="position: fixed; background-color: transparent; top: 0px; left: 0px; width: 100%; height: 100%"></div>
+    <script>
+        $(document).ready(function () {
+            var oMain = new CMain({
+                //Set the difficulty of each level. Less is harder.
+                max_givens_beginner: 38, //Max number of starting givens in beginner sudoku (lower limit: 36)
+                max_givens_intermediate: 32, //Max number of starting givens in intermediate sudoku (lower limit: 28)
+                max_givens_advanced: 26,     //Max number of starting givens in advanced sudoku (lower limit: 25)                                           
+
+                bonus_time_beginner: 600000,   //TIME LIMIT (IN MS) TO COMPLETE THE GAME, FOR BONUS POINTS CALCULATION IN BEGINNER GAME MODE (DEFAULT: 10 MINUTES)
+                bonus_time_intermediate: 1200000,   //TIME LIMIT (IN MS) TO COMPLETE THE GAME, FOR BONUS POINTS CALCULATION IN INTERMEDIATE GAME MODE (DEFAULT: 20 MINUTES)
+                bonus_time_advanced: 1800000,   //TIME LIMIT (IN MS) TO COMPLETE THE GAME, FOR BONUS POINTS CALCULATION IN ADVANCED GAME MODE (DEFAULT: 30 MINUTES)
+                fullscreen: true, //SET THIS TO FALSE IF YOU DON'T WANT TO SHOW FULLSCREEN BUTTON
+                check_orientation: true,     //SET TO FALSE IF YOU DON'T WANT TO SHOW ORIENTATION ALERT ON MOBILE DEVICES
+                //////////////////////////////////////////////////////////////////////////////////////////
+                ad_show_counter: 20     //NUMBER OF INSERTED-NUMBERS BEFORE AD SHOWN
+                //
+                //// THIS FUNCTIONALITY IS ACTIVATED ONLY WITH CTL ARCADE PLUGIN.///////////////////////////
+                /////////////////// YOU CAN GET IT AT: /////////////////////////////////////////////////////////
+                // http://codecanyon.net/item/ctl-arcade-wordpress-plugin/13856421?s_phrase=&s_rank=27 ///////////
+
+            });
+
+            // $(oMain).on("start_session", function (evt) {
+            //     if (getParamValue('ctl-arcade') === "true") {
+            //         parent.__ctlArcadeStartSession();
+            //     }
+            //     //...ADD YOUR CODE HERE EVENTUALLY
+            // });
+
+            // $(oMain).on("end_session", function (evt) {
+            //     if (getParamValue('ctl-arcade') === "true") {
+            //         parent.__ctlArcadeEndSession();
+            //     }
+            //     //...ADD YOUR CODE HERE EVENTUALLY
+            // });
+
+            // $(oMain).on("restart_level", function (evt, iLevel) {
+            //     if (getParamValue('ctl-arcade') === "true") {
+            //         parent.__ctlArcadeRestartLevel({ level: iLevel });
+            //     }
+            //     //...ADD YOUR CODE HERE EVENTUALLY
+            // });
+
+            // $(oMain).on("save_score", function (evt, iScore, iDifficultyMode, iTime, bNote, bSolve, bTime, iNumHint) {
+            //     //1 iDifficultyMode => return difficulty mode (0 = beginner, 1 = intermediate, 2 = advanced;
+            //     //2 iTime => return completition time of sudoku;
+            //     //3 bNote => return true, if player used autofill notes help;
+            //     //3 bSolve => return true, if player used autosolver;
+            //     //4 bTime => return true if player have played without time;
+            //     //5 iNumHint => return number of Hints used. 0 = no hints used;
+            //     if (getParamValue('ctl-arcade') === "true") {
+            //         parent.__ctlArcadeSaveScore({ score: iScore, mode: iDifficultyMode, time: iTime, helpnote: bNote, helpsolve: bSolve, helpnotime: bTime, helpnumhint: iNumHint });
+            //     }
+            // });
+
+            // $(oMain).on("start_level", function (evt, iLevel) {
+            //     if (getParamValue('ctl-arcade') === "true") {
+            //         parent.__ctlArcadeStartLevel({ level: iLevel });
+            //     }
+            //     //...ADD YOUR CODE HERE EVENTUALLY
+            // });
+
+            // $(oMain).on("end_level", function (evt, iLevel) {
+            //     if (getParamValue('ctl-arcade') === "true") {
+            //         parent.__ctlArcadeEndLevel({ level: iLevel });
+            //     }
+            //     //...ADD YOUR CODE HERE EVENTUALLY
+            // });
+
+            // $(oMain).on("show_interlevel_ad", function (evt) {
+            //     if (getParamValue('ctl-arcade') === "true") {
+            //         parent.__ctlArcadeShowInterlevelAD();
+            //     }
+            //     //...ADD YOUR CODE HERE EVENTUALLY
+            // });
+
+            // $(oMain).on("share_event", function (evt, iScore) {
+            //     if (getParamValue('ctl-arcade') === "true") {
+            //         parent.__ctlArcadeShareEvent({
+            //             img: TEXT_SHARE_IMAGE,
+            //             title: TEXT_SHARE_TITLE,
+            //             msg: TEXT_SHARE_MSG1 + iScore + TEXT_SHARE_MSG2,
+            //             msg_share: TEXT_SHARE_SHARE1 + iScore + TEXT_SHARE_SHARE1
+            //         });
+            //     }
+            //     //...ADD YOUR CODE HERE EVENTUALLY
+            // });
+
+            if (isIOS()) {
+                setTimeout(function () { sizeHandler(); }, 200);
+            } else {
+                sizeHandler();
+            }
+        });
+
+    </script>
+
+    <div class="check-fonts">
+        <p class="check-font-1">blackplotan</p>
+    </div>
+
+    <canvas id="canvas" class='ani_hack' width="1080" height="1920"> </canvas>
+    <div data-orientation="portrait" class="orientation-msg-container">
+        <p class="orientation-msg-text">Please rotate your device</p>
+    </div>
+    <div id="block_game"
+        style="position: fixed; background-color: transparent; top: 0px; left: 0px; width: 100%; height: 100%; display:none">
+    </div>
+
+</body>
+
+</html>
