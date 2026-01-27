@@ -1,0 +1,1 @@
+window._CCSettings={platform:"web-mobile",groupList:["default","colid"],collisionMatrix:[[false],[false,true]],hasResourcesBundle:true,hasStartSceneBundle:false,remoteBundles:[],subpackages:[],launchScene:"db://assets/resources/main.fire",orientation:"",jsList:["assets/scripts/core/http/base64.js","assets/scripts/core/url/uri-crypto/VVJJQ3J5cHRv.min.js"]};
