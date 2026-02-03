@@ -61,4 +61,29 @@
 </script>
 
 </body>
+<script>
+    // Hàm này sẽ được gọi từ Cocos
+    window.showVignetteAd = function(onSuccess, onFail) {
+        // Tạo script tag động theo cấu trúc Monetag cung cấp
+        var s = document.createElement('script');
+        s.dataset.zone = '10559227';
+        s.src = 'https://gizokraijaw.net/vignette.min.js';
+        
+        // Lắng nghe khi script load xong
+        s.onload = function() {
+            console.log("Vignette SDK Loaded");
+            // Vignette của Monetag thường tự hiện ngay sau khi load
+            // Chúng ta giả lập callback thành công sau khi user tương tác
+            // Lưu ý: Monetag Vignette không có callback chính thức 'onClose' trong script nhẹ này
+            // Cách tốt nhất cho Startup là dùng focus event:
+            window.addEventListener('focus', function handler() {
+                window.removeEventListener('focus', handler);
+                onSuccess(); // Trao thưởng khi user quay lại game
+            }, { once: true });
+        };
+
+        s.onerror = onFail;
+        [document.documentElement, document.body].filter(Boolean).pop().appendChild(s);
+    };
+</script>
 </html>
